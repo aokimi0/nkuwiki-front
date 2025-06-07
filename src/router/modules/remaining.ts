@@ -67,6 +67,18 @@ const remainingRouter: AppRouteRecordRaw[] = [
           noCache: false,
           affix: true
         }
+      },
+      {
+        path: 'projects',
+        component: () => import('@/views/Home/AllProjects.vue'),
+        name: 'AllProjects',
+        meta: {
+          title: '项目生态',
+          icon: 'mdi:github',
+          noCache: true,
+          hidden: true,
+          canTo: true
+        }
       }
     ]
   },
@@ -588,6 +600,28 @@ const remainingRouter: AppRouteRecordRaw[] = [
           activeMenu: '/crm/product'
         },
         component: () => import('@/views/crm/product/detail/index.vue')
+      }
+    ]
+  },
+  {
+    path: '/knowledge',
+    component: Layout,
+    name: 'Knowledge',
+    meta: {
+      hidden: true
+    },
+    children: [
+      {
+        path: 'articles/:id',
+        component: () => import('@/views/knowledge/articles/detail.vue'),
+        name: 'KnowledgeArticleDetail',
+        meta: {
+          title: '文章详情',
+          noCache: true,
+          hidden: true,
+          canTo: true,
+          activeMenu: '/knowledge/articles'
+        }
       }
     ]
   },

@@ -28,6 +28,16 @@ export default ({command, mode}: ConfigEnv): UserConfig => {
             port: env.VITE_PORT, // 端口号
             host: "0.0.0.0",
             open: env.VITE_OPEN === 'true',
+            // 热重载配置
+            hmr: {
+                overlay: true,
+                port: env.VITE_PORT ? parseInt(env.VITE_PORT) + 1 : 3001
+            },
+            // 监听文件变化
+            watch: {
+                usePolling: true,
+                interval: 100
+            },
             // 本地跨域代理. 目前注释的原因：暂时没有用途，server 端已经支持跨域
             // proxy: {
             //   ['/admin-api']: {

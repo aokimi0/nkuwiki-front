@@ -7,11 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="keywords"
-      content="芋道管理系统 基于 vue3 + CompositionAPI + typescript + vite3 + element plus 的后台开源免费管理系统！"
+      content="nkuwiki南开知识共享平台 基于 vue3 + CompositionAPI + typescript + vite + element plus 的校园知识管理系统！"
     />
     <meta
       name="description"
-      content="芋道管理系统 基于 vue3 + CompositionAPI + typescript + vite3 + element plus 的后台开源免费管理系统！"
+      content="nkuwiki南开知识共享平台 基于 vue3 + CompositionAPI + typescript + vite + element plus 的校园知识管理系统！"
     />
     <title>%VITE_APP_TITLE%</title>
   </head>
@@ -42,14 +42,34 @@
 
         .app-loading .app-loading-title {
           margin-bottom: 30px;
-          font-size: 20px;
-          font-weight: bold;
           text-align: center;
+        }
+
+        .app-loading .app-loading-text {
+          margin-top: 10px;
+        }
+
+        .app-loading .app-loading-title-main {
+          font-size: 24px;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 5px;
+          letter-spacing: 1px;
+        }
+
+        .app-loading .app-loading-title-sub {
+          font-size: 16px;
+          font-weight: normal;
+          color: #666;
+          line-height: 1.2;
         }
 
         .app-loading .app-loading-logo {
           width: 100px;
+          height: 100px;
           margin: 0 auto 15px auto;
+          border-radius: 12px;
+          object-fit: cover;
         }
 
         .app-loading .app-loading-item {
@@ -136,8 +156,11 @@
       <div class="app-loading">
         <div class="app-loading-wrap">
           <div class="app-loading-title">
-            <img src="/logo.gif" class="app-loading-logo" alt="Logo" />
-            <div class="app-loading-title">%VITE_APP_TITLE%</div>
+            <img src="https://raw.githubusercontent.com/aokimi0/image-hosting-platform/main/img/logo-blue.png" class="app-loading-logo" alt="nkuwiki Logo" />
+            <div class="app-loading-text">
+              <div class="app-loading-title-main">nkuwiki</div>
+              <div class="app-loading-title-sub">南开知识共享平台</div>
+            </div>
           </div>
           <div class="app-loading-item">
             <div class="app-loading-outter"></div>

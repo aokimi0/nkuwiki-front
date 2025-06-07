@@ -67,13 +67,14 @@ watch(
       to="/"
     >
       <img
-        class="h-[calc(var(--logo-height)-10px)] w-[calc(var(--logo-height)-10px)]"
-        src="@/assets/imgs/logo.png"
+        class="h-[calc(var(--logo-height)-10px)] w-[calc(var(--logo-height)-10px)] rounded-lg"
+        src="https://raw.githubusercontent.com/aokimi0/image-hosting-platform/main/img/wiki-uc-green2.png"
+        alt="nkuwiki logo"
       />
       <div
         v-if="show"
         :class="[
-          'ml-10px text-16px font-700',
+          'ml-10px font-700',
           {
             'text-[var(--logo-title-text-color)]': layout === 'classic',
             'text-[var(--top-header-text-color)]':
@@ -81,7 +82,8 @@ watch(
           }
         ]"
       >
-        {{ title }}
+        <div class="text-18px leading-tight">nkuwiki</div>
+        <div class="text-14px leading-tight mt-1">南开知识共享平台</div>
       </div>
     </router-link>
   </div>
