@@ -275,69 +275,69 @@ def import_articles_from_remote():
         error_count = 0
         
         # # 处理 wechat_nku 表 - 根据要求跳过
-        # print("\n=== 处理 wechat_nku 表 ===")
-        # wechat_articles = fetch_remote_data_properly(remote_cursor, 'wechat_nku')
-        # print(f"获取到 {len(wechat_articles)} 条微信文章")
+        print("\n=== 处理 wechat_nku 表 ===")
+        wechat_articles = fetch_remote_data_properly(remote_cursor, 'wechat_nku')
+        print(f"获取到 {len(wechat_articles)} 条微信文章")
         
-        # for i, article in enumerate(wechat_articles):
-        #     try:
-        #         title = article.get('title', f'无标题文章_{i}')
-        #         content = article.get('content', '')
-        #         author = article.get('author', '南开大学')
-        #         publish_time = article.get('publish_time')
+        for i, article in enumerate(wechat_articles):
+            try:
+                title = article.get('title', f'无标题文章_{i}')
+                content = article.get('content', '')
+                author = article.get('author', '南开大学')
+                publish_time = article.get('publish_time')
                 
-        #         # 简单的进度反馈
-        #         if (i + 1) % 100 == 0:
-        #             local_conn.commit() # 分批提交
-        #             print(f"  ... 已提交 {i + 1} / {len(wechat_articles)} 篇微信文章")
+                # 简单的进度反馈
+                if (i + 1) % 100 == 0:
+                    local_conn.commit() # 分批提交
+                    print(f"  ... 已提交 {i + 1} / {len(wechat_articles)} 篇微信文章")
 
-        #         # 检查文章是否已存在
-        #         check_query = "SELECT id FROM knowledge_articles WHERE title = %s"
-        #         local_cursor.execute(check_query, (title,))
-        #         if local_cursor.fetchone():
-        #             # print(f"文章已存在，跳过: {title}")
-        #             continue
+                # 检查文章是否已存在
+                check_query = "SELECT id FROM knowledge_articles WHERE title = %s"
+                local_cursor.execute(check_query, (title,))
+                if local_cursor.fetchone():
+                    # print(f"文章已存在，跳过: {title}")
+                    continue
                 
-        #         # 提取部门信息
-        #         dept_name = extract_department_from_author(author)
+                # 提取部门信息
+                dept_name = extract_department_from_author(author)
                 
-        #         # 获取或创建用户
-        #         author_id = get_or_create_user(local_cursor, author, dept_name)
+                # 获取或创建用户
+                author_id = get_or_create_user(local_cursor, author, dept_name)
                 
-        #         # 清理内容
-        #         cleaned_content = clean_content(content)
+                # 清理内容
+                cleaned_content = clean_content(content)
                 
-        #         # 插入文章
-        #         insert_query = """
-        #         INSERT INTO knowledge_articles 
-        #         (title, content, publish_date, author_id, source_platform, tenant_id, 
-        #          creator, create_time, updater, update_time, deleted)
-        #         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        #         """
+                # 插入文章
+                insert_query = """
+                INSERT INTO knowledge_articles 
+                (title, content, publish_date, author_id, source_platform, tenant_id, 
+                 creator, create_time, updater, update_time, deleted)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
                 
-        #         values = (
-        #             title,
-        #             cleaned_content,
-        #             parse_publish_date(publish_time),
-        #             author_id,
-        #             'wechat',
-        #             1,  # tenant_id
-        #             'import_script',
-        #             datetime.now(),
-        #             'import_script',
-        #             datetime.now(),
-        #             0   # deleted
-        #         )
+                values = (
+                    title,
+                    cleaned_content,
+                    parse_publish_date(publish_time),
+                    author_id,
+                    'wechat',
+                    1,  # tenant_id
+                    'import_script',
+                    datetime.now(),
+                    'import_script',
+                    datetime.now(),
+                    0   # deleted
+                )
                 
-        #         local_cursor.execute(insert_query, values)
-        #         success_count += 1
+                local_cursor.execute(insert_query, values)
+                success_count += 1
                 
-        #     except Exception as e:
-        #         error_count += 1
-        #         print(f"处理微信文章《{title}》时出错: {e}") # 恢复错误日志
+            except Exception as e:
+                error_count += 1
+                print(f"处理微信文章《{title}》时出错: {e}") # 恢复错误日志
         
-        # local_conn.commit() # 确保最后不足100篇的批次也被提交
-        # print("微信文章处理完毕，最终提交。")
+        local_conn.commit() # 确保最后不足100篇的批次也被提交
+        print("微信文章处理完毕，最终提交。")
 
         # 处理 website_nku 表
         print("\n=== 处理 website_nku 表 ===")

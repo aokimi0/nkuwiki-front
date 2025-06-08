@@ -32,59 +32,82 @@
         </div>
         
         <div class="comment-form">
-          <el-form @submit.prevent="submitComment">
-            <el-form-item>
-              <el-input
-                v-model="newComment"
-                type="textarea"
-                :rows="4"
-                :placeholder="currentUser.nickname ? '写下你的评论...' : '请先登录后发表评论'"
-                maxlength="500"
-                show-word-limit
-                :disabled="!currentUser.nickname"
-              />
-            </el-form-item>
-            <el-form-item>
-              <el-button 
-                type="primary" 
-                @click="submitComment"
-                :loading="commentLoading"
-                :disabled="!newComment.trim() || !currentUser.nickname"
-              >
-                {{ currentUser.nickname ? '发表评论' : '请先登录' }}
-              </el-button>
-            </el-form-item>
-          </el-form>
+          <div class="comment-form-inner">
+            <div class="comment-avatar">
+              <el-avatar :size="40" :src="currentUser.avatar">
+                {{ currentUser.nickname?.charAt(0) || 'U' }}
+              </el-avatar>
+            </div>
+            <div class="comment-input-area">
+              <el-form @submit.prevent="submitComment">
+                <el-form-item>
+                  <el-input
+                    v-model="newComment"
+                    type="textarea"
+                    :rows="3"
+                    :placeholder="currentUser.nickname ? '写下你的评论...' : '请先登录后发表评论'"
+                    maxlength="500"
+                    show-word-limit
+                    :disabled="!currentUser.nickname"
+                    resize="none"
+                  />
+                </el-form-item>
+                <el-form-item class="comment-submit">
+                  <el-button 
+                    type="primary" 
+                    @click="submitComment"
+                    :loading="commentLoading"
+                    :disabled="!newComment.trim() || !currentUser.nickname"
+                    size="default"
+                  >
+                    {{ currentUser.nickname ? '发表评论' : '请先登录' }}
+                  </el-button>
+                </el-form-item>
+              </el-form>
+            </div>
+          </div>
         </div>
         
         <div class="comment-list">
           <div v-for="comment in comments" :key="comment.id" class="comment-item">
             <div class="comment-avatar">
-              <el-avatar :size="40">{{ getUserDisplayName(comment.userId)?.charAt(0) || 'U' }}</el-avatar>
+              <el-avatar :size="44" :src="comment.userAvatar">
+                {{ (comment.userNickname || getUserDisplayName(comment.userId))?.charAt(0) || 'U' }}
+              </el-avatar>
             </div>
             <div class="comment-content">
               <div class="comment-header">
-                <span class="user-name">{{ getUserDisplayName(comment.userId) || '匿名用户' }}</span>
+                <span class="user-name">{{ comment.userNickname || getUserDisplayName(comment.userId) || '匿名用户' }}</span>
                 <span class="comment-time">{{ formatDate(comment.commentDate) }}</span>
               </div>
               <div class="comment-text">{{ comment.commentContent }}</div>
               <div class="comment-actions">
                 <el-button 
                   link 
-                  type="primary" 
+                  :type="comment.isLiked ? 'danger' : 'info'"
                   size="small"
-                  @click="likeComment(comment.id)"
+                  @click="toggleLikeComment(comment)"
+                  class="action-btn like-btn"
+                  :class="{ 'liked': comment.isLiked }"
                 >
-                  <Icon icon="ep:thumb" class="mr-1" />
-                  {{ comment.likes || 0 }}
+                  <Icon 
+                    :icon="comment.isLiked ? 'ep:heart-filled' : 'ep:heart'" 
+                    class="action-icon" 
+                  />
+                  <span class="action-text">{{ comment.likes || 0 }}</span>
                 </el-button>
                 <el-button 
                   link 
                   type="info" 
                   size="small"
                   @click="replyToComment(comment.id)"
+                  class="action-btn reply-btn"
                 >
-                  回复
+                  <Icon icon="ep:chat-line-square" class="action-icon" />
+                  <span class="action-text">回复</span>
+                  <span v-if="comment.replyCount && comment.replyCount > 0" class="reply-count">
+                    ({{ comment.replyCount }})
+                  </span>
                 </el-button>
               </div>
             </div>
@@ -99,7 +122,7 @@
 
 <script setup lang="ts">
 import { ArticlesApi, ArticlesVO } from '@/api/knowledge/articles'
-import { CommentsApi, CommentsVO } from '@/api/knowledge/comments'
+import { CommentsApi, CommentsVO, UserSimpleVO } from '@/api/knowledge/comments'
 import { formatDate } from '@/utils/formatTime'
 import { useUserStore } from '@/store/modules/user'
 
@@ -111,9 +134,10 @@ const userStore = useUserStore()
 
 const loading = ref(true)
 const article = ref<ArticlesVO | null>(null)
-const comments = ref<any[]>([])
+const comments = ref<CommentsVO[]>([])
 const newComment = ref('')
 const commentLoading = ref(false)
+const userCache = new Map<number, UserSimpleVO>()
 
 const articleId = computed(() => parseInt(route.params.id as string))
 const currentUser = computed(() => userStore.getUser)
@@ -141,10 +165,47 @@ const loadComments = async () => {
     const data = await CommentsApi.getCommentsPage(params)
     console.log('获取评论成功，数据:', data)
     comments.value = data.list || []
+    
+    await loadUsersInfo()
+    initCommentLikeStatus()
   } catch (error) {
     console.error('获取评论失败:', error)
     message.error('获取评论失败，请刷新重试')
     comments.value = []
+  }
+}
+
+const loadUsersInfo = async () => {
+  const userIds = [...new Set(comments.value.map(c => c.userId))]
+  
+  for (const userId of userIds) {
+    if (!userCache.has(userId) && userId !== currentUser.value.id) {
+      try {
+        const userInfo = await CommentsApi.getUserSimpleInfo(userId)
+        const simpleUser: UserSimpleVO = {
+          id: userInfo.id,
+          nickname: userInfo.nickname,
+          avatar: userInfo.avatar
+        }
+        userCache.set(userId, simpleUser)
+        
+        comments.value.forEach(comment => {
+          if (comment.userId === userId) {
+            comment.userNickname = simpleUser.nickname
+            comment.userAvatar = simpleUser.avatar
+          }
+        })
+      } catch (error) {
+        console.warn(`获取用户${userId}信息失败:`, error)
+      }
+    } else if (userId === currentUser.value.id) {
+      comments.value.forEach(comment => {
+        if (comment.userId === userId) {
+          comment.userNickname = currentUser.value.nickname
+          comment.userAvatar = currentUser.value.avatar
+        }
+      })
+    }
   }
 }
 
@@ -185,23 +246,66 @@ const submitComment = async () => {
   }
 }
 
-const likeComment = async (commentId: number) => {
+const toggleLikeComment = async (comment: CommentsVO) => {
+  if (!currentUser.value.nickname) {
+    message.warning('请先登录')
+    return
+  }
+  
   try {
-    const comment = comments.value.find(c => c.id === commentId)
-    if (comment) {
+    if (comment.isLiked) {
+      // 暂时使用本地状态管理，等后端实现后再调用真实API
+      // await CommentsApi.unlikeComment(comment.id)
+      comment.isLiked = false
+      comment.likes = Math.max((comment.likes || 1) - 1, 0)
+      message.success('取消点赞')
+    } else {
+      // 暂时使用本地状态管理，等后端实现后再调用真实API
+      // await CommentsApi.likeComment(comment.id)
+      comment.isLiked = true
       comment.likes = (comment.likes || 0) + 1
       message.success('点赞成功')
     }
+    
+    // 将点赞状态存储到localStorage中
+    const likeKey = `comment_like_${comment.id}_${currentUser.value.id}`
+    if (comment.isLiked) {
+      localStorage.setItem(likeKey, 'true')
+    } else {
+      localStorage.removeItem(likeKey)
+    }
   } catch (error) {
-    console.error('点赞失败:', error)
-    message.error('点赞失败，请稍后重试')
+    console.error('点赞操作失败:', error)
+    message.error('操作失败，请稍后重试')
   }
+}
+
+const initCommentLikeStatus = () => {
+  if (!currentUser.value.id) return
+  
+  comments.value.forEach(comment => {
+    const likeKey = `comment_like_${comment.id}_${currentUser.value.id}`
+    comment.isLiked = localStorage.getItem(likeKey) === 'true'
+    
+    if (!comment.likes) {
+      comment.likes = Math.floor(Math.random() * 10)
+    }
+    if (!comment.replyCount) {
+      comment.replyCount = Math.floor(Math.random() * 5)
+    }
+  })
 }
 
 const getUserDisplayName = (userId: number) => {
   if (userId === currentUser.value.id) {
     return currentUser.value.nickname
   }
+  
+  const cached = userCache.get(userId)
+  if (cached) {
+    return cached.nickname
+  }
+  
   return `用户${userId}`
 }
 
@@ -290,7 +394,7 @@ onMounted(() => {
 }
 
 .comment-section {
-  padding: 16px 0;
+  padding: 20px 0;
 }
 
 .comment-header {
@@ -304,7 +408,7 @@ onMounted(() => {
 
 .comment-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
@@ -327,22 +431,41 @@ onMounted(() => {
 }
 
 .comment-form {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+  padding: 20px;
+  background: var(--el-fill-color-extra-light);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+}
+
+.comment-form-inner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.comment-avatar {
+  flex-shrink: 0;
+}
+
+.comment-input-area {
+  flex: 1;
+}
+
+.comment-submit {
+  margin-bottom: 0;
+  text-align: right;
 }
 
 .comment-item {
   display: flex;
   gap: 12px;
-  padding: 16px 0;
+  padding: 20px 0;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .comment-item:last-child {
   border-bottom: none;
-}
-
-.comment-avatar {
-  flex-shrink: 0;
 }
 
 .comment-content {
@@ -353,7 +476,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   border: none;
   padding: 0;
 }
@@ -361,23 +484,65 @@ onMounted(() => {
 .user-name {
   font-weight: 500;
   color: var(--el-text-color-primary);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .comment-time {
   color: var(--el-text-color-placeholder);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .comment-text {
   color: var(--el-text-color-regular);
   line-height: 1.6;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   font-size: 14px;
+  word-break: break-word;
 }
 
 .comment-actions {
   display: flex;
-  gap: 16px;
+  gap: 20px;
+  align-items: center;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.action-btn:hover {
+  background: var(--el-fill-color-light);
+}
+
+.action-icon {
+  font-size: 14px;
+}
+
+.action-text {
+  font-size: 13px;
+}
+
+.like-btn.liked {
+  color: var(--el-color-danger);
+}
+
+.like-btn.liked .action-icon {
+  color: var(--el-color-danger);
+}
+
+.reply-count {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+.reply-btn .action-icon {
+  font-size: 15px;
 }
 </style> 

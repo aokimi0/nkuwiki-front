@@ -42,4 +42,4 @@ export const ArticlesApi = {
   exportArticles: async (params) => {
     return await request.download({ url: `/knowledge/articles/export-excel`, params })
   },
-}
+}
